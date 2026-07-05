@@ -26,6 +26,34 @@ autoCloseOnSleep.subscribe((v) => {
   } catch {}
 })
 
+// Keep screen awake habang tumutugtog ang YouTube track (persisted)
+export const keepAwake = writable(localStorage.getItem('frostify:wakelock') === '1')
+keepAwake.subscribe((v) => {
+  try {
+    localStorage.setItem('frostify:wakelock', v ? '1' : '0')
+  } catch {}
+})
+
+let wakeLock = null
+
+async function acquireWakeLock() {
+  if (wakeLock || !('wakeLock' in navigator)) return
+  try {
+    wakeLock = await navigator.wakeLock.request('screen')
+    wakeLock.addEventListener('release', () => (wakeLock = null))
+  } catch {}
+}
+
+function releaseWakeLock() {
+  wakeLock?.release?.().catch(() => {})
+  wakeLock = null
+}
+
+function syncWakeLock() {
+  if (get(keepAwake) && get(isPlaying) && engine === 'yt') acquireWakeLock()
+  else releaseWakeLock()
+}
+
 let yt = null
 let ytReady = false
 let pendingTrack = null
@@ -85,6 +113,13 @@ export function initPlayer() {
   }
 
   setupMediaSession()
+
+  // Wake lock: sundan ang playback state; i-reacquire pagbalik sa app
+  isPlaying.subscribe(syncWakeLock)
+  keepAwake.subscribe(syncWakeLock)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncWakeLock()
+  })
 }
 
 function createYT() {
@@ -186,6 +221,7 @@ export function seekTo(seconds) {
     audio.currentTime = seconds
   }
   progress.set(seconds)
+  updatePositionState()
 }
 
 export function next() {
@@ -314,7 +350,10 @@ function stopLocal() {
 function startTick() {
   stopTick()
   tick = setInterval(() => {
-    if (engine === 'yt' && yt?.getCurrentTime) progress.set(yt.getCurrentTime() || 0)
+    if (engine === 'yt' && yt?.getCurrentTime) {
+      progress.set(yt.getCurrentTime() || 0)
+      updatePositionState() // sync ang notification seek bar
+    }
   }, 500)
 }
 
@@ -329,6 +368,24 @@ function setupMediaSession() {
   navigator.mediaSession.setActionHandler('pause', togglePlay)
   navigator.mediaSession.setActionHandler('nexttrack', next)
   navigator.mediaSession.setActionHandler('previoustrack', prev)
+  try {
+    navigator.mediaSession.setActionHandler('seekto', (e) => {
+      if (e.seekTime != null) seekTo(e.seekTime)
+    })
+  } catch {}
+}
+
+function updatePositionState() {
+  if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return
+  const d = get(duration)
+  if (!d || !isFinite(d)) return
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: d,
+      position: Math.min(get(progress), d),
+      playbackRate: 1,
+    })
+  } catch {}
 }
 
 function updateMediaMetadata(track) {

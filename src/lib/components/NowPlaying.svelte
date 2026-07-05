@@ -15,6 +15,7 @@
     sleepRemaining,
     showVideo,
     autoCloseOnSleep,
+    keepAwake,
     togglePlay,
     seekTo,
     next,
@@ -211,6 +212,21 @@
         </label>
         <p class="text-mist text-xs">
           Note: sure itong gumagana sa installed PWA. Sa regular browser tab, minsan hina-harang ng browser ang auto-close — sa ganoong kaso, pause na lang ang mangyayari.
+        </p>
+
+        <!-- Keep screen awake (para tuloy ang YouTube playback) -->
+        <label class="glass flex items-center justify-between gap-3 rounded-2xl p-4">
+          <span class="text-ice flex items-center gap-2 text-sm">
+            <Icon name="sun" size={16} /> Keep screen awake (YouTube)
+          </span>
+          <input
+            type="checkbox"
+            bind:checked={$keepAwake}
+            class="bg-glacier checked:bg-frost before:bg-ice relative h-5 w-9 shrink-0 appearance-none rounded-full transition-colors before:absolute before:top-0.5 before:left-0.5 before:h-4 before:w-4 before:rounded-full before:transition-transform checked:before:translate-x-4"
+          />
+        </label>
+        <p class="text-mist text-xs">
+          Pinipigilan nitong mag-off ang screen habang may YouTube track na tumutugtog — para hindi ma-pause. May kapalit na battery usage. Ang Vault tracks ay tuloy-tuloy kahit naka-lock, hindi nila ito kailangan.
         </p>
       </div>
     {/if}
