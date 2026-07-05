@@ -1,4 +1,5 @@
 <script>
+  import Icon from './Icon.svelte'
   import { favorites, isFav, toggleFav } from '../stores/library.js'
   import { addToQueue } from '../stores/player.js'
 
@@ -12,7 +13,9 @@
     {#if track.art}
       <img src={track.art} alt="" class="h-12 w-12 shrink-0 rounded-lg object-cover" loading="lazy" />
     {:else}
-      <div class="bg-glacier text-frost grid h-12 w-12 shrink-0 place-items-center rounded-lg text-lg">❄</div>
+      <div class="bg-glacier text-frost grid h-12 w-12 shrink-0 place-items-center rounded-lg">
+        <Icon name="music" size={20} />
+      </div>
     {/if}
     <div class="min-w-0 flex-1">
       <p class="font-display truncate text-sm font-semibold">{track.title}</p>
@@ -21,20 +24,20 @@
   </button>
 
   <button
-    class="grid h-9 w-9 shrink-0 place-items-center text-lg {fav ? 'text-frost' : 'text-mist'}"
+    class="grid h-9 w-9 shrink-0 place-items-center {fav ? 'text-frost' : 'text-mist'}"
     onclick={() => toggleFav(track)}
     aria-label={fav ? 'Remove from favorites' : 'Add to favorites'}
   >
-    {fav ? '♥' : '♡'}
+    <Icon name="heart" size={18} filled={fav} />
   </button>
 
   {#if showqueue}
     <button
-      class="text-mist grid h-9 w-9 shrink-0 place-items-center text-lg"
+      class="text-mist grid h-9 w-9 shrink-0 place-items-center"
       onclick={() => addToQueue(track)}
       aria-label="Add to queue"
     >
-      ＋
+      <Icon name="plus" size={18} />
     </button>
   {/if}
 </div>

@@ -1,4 +1,5 @@
 <script>
+  import Icon from './Icon.svelte'
   import TrackRow from './TrackRow.svelte'
   import { recents, favorites } from '../stores/library.js'
   import { playTrack } from '../stores/player.js'
@@ -16,9 +17,8 @@
   </h1>
 
   {#if !$recents.length && !$favorites.length}
-    <!-- Empty state -->
     <div class="glass mt-10 rounded-3xl p-8 text-center">
-      <p class="mb-2 text-4xl">❄</p>
+      <div class="text-frost mb-3 flex justify-center"><Icon name="snowflake" size={40} /></div>
       <h2 class="font-display mb-1 text-lg font-semibold">Malamig pa dito</h2>
       <p class="text-mist mb-5 text-sm">Search for a song to start the frost.</p>
       <button

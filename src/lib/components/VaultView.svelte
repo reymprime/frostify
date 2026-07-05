@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte'
+  import Icon from './Icon.svelte'
   import TrackRow from './TrackRow.svelte'
   import { vaultTracks, refreshVault, addFilesToVault, deleteFromVault } from '../stores/vault.js'
   import { playTrack } from '../stores/player.js'
@@ -20,9 +21,11 @@
 </script>
 
 <div class="px-5">
-  <h1 class="font-display mb-1 text-2xl font-bold tracking-tight">Vault ❄</h1>
+  <h1 class="font-display mb-1 flex items-center gap-2 text-2xl font-bold tracking-tight">
+    Vault <span class="text-frost"><Icon name="snowflake" size={22} /></span>
+  </h1>
   <p class="text-mist mb-4 text-sm">
-    Your own audio files, frozen safely on-device. Works fully offline.
+    Your own audio files, frozen safely on-device. Works fully offline — with EQ + visualizer.
   </p>
 
   <input
@@ -34,10 +37,11 @@
     onchange={onFiles}
   />
   <button
-    class="glass text-frost mb-5 w-full rounded-2xl p-4 text-sm font-semibold active:scale-[0.98] transition-transform"
+    class="glass text-frost mb-5 flex w-full items-center justify-center gap-2 rounded-2xl p-4 text-sm font-semibold active:scale-[0.98] transition-transform"
     onclick={() => fileInput.click()}
   >
-    {importing ? 'Freezing files…' : '＋ Add audio files to Vault'}
+    <Icon name="upload" size={16} />
+    {importing ? 'Freezing files…' : 'Add audio files to Vault'}
   </button>
 
   <div class="space-y-2 pb-4">
@@ -51,7 +55,7 @@
           onclick={() => deleteFromVault(t.vaultId)}
           aria-label="Delete from vault"
         >
-          ✕
+          <Icon name="trash" size={16} />
         </button>
       </div>
     {/each}

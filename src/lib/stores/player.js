@@ -1,11 +1,9 @@
 import { writable, get } from 'svelte/store'
 import { addRecent } from './library.js'
 import { getVaultBlob } from './vault.js'
+import { attachFx } from './audiofx.js'
 
-// ── Frostify Dual Playback Engine ───────────────────────────
-// Engine A: YouTube IFrame API (streamed tracks)
-// Engine B: HTML5 Audio (vault / local files)
-
+// ── Frostify Dual Playback Engine v3 ────────────────────────
 export const currentTrack = writable(null)
 export const isPlaying = writable(false)
 export const progress = writable(0)
@@ -14,17 +12,19 @@ export const queue = writable([])
 export const queueIndex = writable(-1)
 export const shuffle = writable(false)
 export const repeat = writable('off') // 'off' | 'all' | 'one'
+export const activeEngine = writable(null) // 'yt' | 'local'
+export const sleepRemaining = writable(0) // seconds; 0 = off
 
 let yt = null
 let ytReady = false
 let pendingTrack = null
 let tick = null
 let audio = null
-let engine = null // 'yt' | 'local'
+let engine = null
 let objectUrl = null
+let sleepInt = null
 
 export function initPlayer() {
-  // Engine B: HTML5 Audio
   audio = new Audio()
   audio.addEventListener('timeupdate', () => {
     if (engine === 'local') progress.set(audio.currentTime)
@@ -36,7 +36,6 @@ export function initPlayer() {
   audio.addEventListener('pause', () => engine === 'local' && isPlaying.set(false))
   audio.addEventListener('ended', handleEnded)
 
-  // Engine A: YouTube IFrame API
   if (window.YT?.Player) {
     createYT()
   } else {
@@ -82,10 +81,7 @@ function createYT() {
   })
 }
 
-// ── Public API ──────────────────────────────────────────────
-
-// playTrack(track) — isang kanta lang
-// playTrack(track, list, index) — may buong queue
+// ── Playback ────────────────────────────────────────────────
 export function playTrack(track, list = null, index = -1) {
   if (list) {
     queue.set(list)
@@ -105,22 +101,23 @@ async function startTrack(track) {
   updateMediaMetadata(track)
 
   if (track.videoId) {
-    // Engine A
     stopLocal()
     engine = 'yt'
+    activeEngine.set('yt')
     if (!ytReady) {
       pendingTrack = track
       return
     }
     yt.loadVideoById(track.videoId)
   } else if (track.vaultId) {
-    // Engine B
     stopYT()
     engine = 'local'
+    activeEngine.set('local')
     const blob = await getVaultBlob(track.vaultId)
     if (!blob) return
     if (objectUrl) URL.revokeObjectURL(objectUrl)
     objectUrl = URL.createObjectURL(blob)
+    attachFx(audio) // EQ + visualizer chain (Sonata logic)
     audio.src = objectUrl
     audio.play()
   }
@@ -168,7 +165,6 @@ export function next() {
 export function prev() {
   const q = get(queue)
   if (!q.length) return
-  // Kung lampas 3 segundo na, balik sa simula ng kanta (Spotify behavior)
   if (get(progress) > 3) {
     seekTo(0)
     return
@@ -202,6 +198,35 @@ function handleEnded() {
   next()
 }
 
+// ── Sleep Timer (Sonata logic) ──────────────────────────────
+export function startSleepTimer(seconds) {
+  cancelSleepTimer()
+  if (!seconds || seconds <= 0) return
+  sleepRemaining.set(seconds)
+  sleepInt = setInterval(() => {
+    sleepRemaining.update((s) => {
+      if (s <= 1) {
+        clearInterval(sleepInt)
+        sleepInt = null
+        pauseAll()
+        return 0
+      }
+      return s - 1
+    })
+  }, 1000)
+}
+
+export function cancelSleepTimer() {
+  if (sleepInt) clearInterval(sleepInt)
+  sleepInt = null
+  sleepRemaining.set(0)
+}
+
+function pauseAll() {
+  if (engine === 'yt' && ytReady) yt.pauseVideo()
+  if (audio) audio.pause()
+}
+
 // ── Internals ───────────────────────────────────────────────
 function stopYT() {
   stopTick()
@@ -227,7 +252,6 @@ function stopTick() {
   tick = null
 }
 
-// ── Media Session (lock screen controls) ────────────────────
 function setupMediaSession() {
   if (!('mediaSession' in navigator)) return
   navigator.mediaSession.setActionHandler('play', togglePlay)

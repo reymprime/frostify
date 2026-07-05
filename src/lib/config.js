@@ -4,7 +4,7 @@
 // 2. Enable "YouTube Data API v3"
 // 3. Credentials → Create API Key
 // 4. I-paste dito:
-export const YT_API_KEY = 'AIzaSyA58g8LJy4f_TiLuv-w61c8vEkq0TJnKhw'
+export const YT_API_KEY = ''
 
 // TIP: Sa API key settings, i-restrict mo sa HTTP referrer:
 // reymprime.github.io/* para hindi magamit ng iba.
