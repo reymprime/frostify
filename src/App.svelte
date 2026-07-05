@@ -1,27 +1,55 @@
 <script>
+  import { onMount } from 'svelte'
   import TopBar from './lib/components/TopBar.svelte'
   import AlbumCard from './lib/components/AlbumCard.svelte'
   import NowPlayingBar from './lib/components/NowPlayingBar.svelte'
+  import NowPlaying from './lib/components/NowPlaying.svelte'
   import BottomNav from './lib/components/BottomNav.svelte'
-  import { currentTrack, isPlaying } from './lib/stores/player.js'
+  import { initPlayer, playTrack } from './lib/stores/player.js'
 
   let activeTab = $state('home')
+  let showNowPlaying = $state(false)
 
-  // Mock data muna — papalitan ito ng YouTube search / Firestore later
+  onMount(() => {
+    initPlayer()
+  })
+
+  // PALITAN mo ang videoId ng sarili mong YouTube picks!
+  // Kunin sa URL: youtube.com/watch?v=VIDEO_ID
   const playlists = [
-    { title: 'Ice Drive', artist: 'Late night synths', art: 'https://picsum.photos/seed/frost2/400' },
-    { title: 'Glacier Lo-fi', artist: 'Focus beats', art: 'https://picsum.photos/seed/frost3/400' },
-    { title: 'OPM Chill', artist: 'Hugot classics', art: 'https://picsum.photos/seed/frost4/400' },
-    { title: 'Aurora Nights', artist: 'Ambient sleep', art: 'https://picsum.photos/seed/frost5/400' },
+    {
+      title: 'Ice Drive',
+      artist: 'Late night synths',
+      art: 'https://picsum.photos/seed/frost2/400',
+      videoId: 'jfKfPfyJRdk',
+    },
+    {
+      title: 'Glacier Lo-fi',
+      artist: 'Focus beats',
+      art: 'https://picsum.photos/seed/frost3/400',
+      videoId: 'M7lc1UVf-VE',
+    },
+    {
+      title: 'OPM Chill',
+      artist: 'Hugot classics',
+      art: 'https://picsum.photos/seed/frost4/400',
+      videoId: 'kJQP7kiw5Fk',
+    },
+    {
+      title: 'Aurora Nights',
+      artist: 'Ambient sleep',
+      art: 'https://picsum.photos/seed/frost5/400',
+      videoId: '9bZkp7q19f0',
+    },
   ]
-
-  function playTrack(p) {
-    currentTrack.set({ title: p.title, artist: p.artist, art: p.art })
-    isPlaying.set(true)
-  }
 </script>
 
 <div class="aurora"></div>
+
+<!-- Hidden YouTube engine — huwag itong tanggalin! -->
+<div class="pointer-events-none fixed right-0 bottom-0 h-px w-px opacity-0" aria-hidden="true">
+  <div id="yt-player"></div>
+</div>
 
 <div class="mx-auto flex h-dvh max-w-md flex-col">
   <TopBar />
@@ -47,7 +75,11 @@
   </main>
 
   <footer class="shrink-0 space-y-2 pb-[env(safe-area-inset-bottom)]">
-    <NowPlayingBar />
+    <NowPlayingBar onexpand={() => (showNowPlaying = true)} />
     <BottomNav active={activeTab} onnavigate={(t) => (activeTab = t)} />
   </footer>
 </div>
+
+{#if showNowPlaying}
+  <NowPlaying onclose={() => (showNowPlaying = false)} />
+{/if}
