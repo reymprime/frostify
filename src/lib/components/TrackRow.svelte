@@ -4,8 +4,9 @@
   import { currentTrack, isPlaying } from '../stores/player.js'
   import { askConfirm, openTrackSheet } from '../stores/ui.js'
 
-  // Gestures: swipe LEFT = favorite • swipe RIGHT = delete (w/ confirm)
-  // 3s HOLD = reorder mode (kung may onhold ang parent list)
+  // Clean row: art + info + ⋯ lang (per reference designs).
+  // Gestures: swipe LEFT = favorite • swipe RIGHT = remove (w/ confirm)
+  // 3s HOLD = reorder mode
   const HOLD_MS = 3000
   const SWIPE_PX = 70
 
@@ -14,6 +15,7 @@
     onplay,
     index = -1,
     ondelete = null,
+    deletelabel = 'Delete',
     reorder = false,
     onhold = null,
     onreorder = null,
@@ -32,6 +34,16 @@
   let holdTimer = null
   let horiz = false
   let moved = false
+
+  function requestRemove() {
+    if (!ondelete) return
+    askConfirm({
+      title: `${deletelabel}?`,
+      message: `"${track.title}" will be removed.`,
+      confirmLabel: 'Remove',
+      onconfirm: ondelete,
+    })
+  }
 
   function down(e) {
     if (reorder) return
@@ -67,12 +79,7 @@
         toggleFav(track)
         navigator.vibrate?.(20)
       } else if (dx >= SWIPE_PX && ondelete) {
-        askConfirm({
-          title: 'Delete track?',
-          message: `Remove "${track.title}" from this list?`,
-          confirmLabel: 'Delete',
-          onconfirm: ondelete,
-        })
+        requestRemove()
       }
     }
     dx = 0
@@ -86,7 +93,7 @@
     }
   }
 
-  // ── Reorder drag (via grip, sa reorder mode) ──────────────
+  // ── Reorder drag via grip ─────────────────────────────────
   let gStartY = 0
   function gdown(e) {
     dragging = true
@@ -104,16 +111,6 @@
     if (slots !== 0 && onreorder) onreorder(index, index + slots)
     dragging = false
     dragY = 0
-  }
-
-  function requestDelete() {
-    if (!ondelete) return
-    askConfirm({
-      title: 'Delete track?',
-      message: `Remove "${track.title}" from this list?`,
-      confirmLabel: 'Delete',
-      onconfirm: ondelete,
-    })
   }
 </script>
 
@@ -163,8 +160,9 @@
         </div>
       {/if}
       <div class="min-w-0 flex-1">
-        <p class="font-display truncate text-sm font-semibold {playing ? 'text-frost' : ''}">
-          {track.title}
+        <p class="font-display flex items-center gap-1.5 truncate text-sm font-semibold {playing ? 'text-frost' : ''}">
+          {#if fav}<span class="text-frost shrink-0"><Icon name="heart" size={11} filled={true} /></span>{/if}
+          <span class="truncate">{track.title}</span>
         </p>
         <p class="text-mist truncate text-xs">
           {#if playing}
@@ -177,29 +175,11 @@
 
     {#if !reorder}
       <button
-        class="grid h-9 w-9 shrink-0 place-items-center {fav ? 'text-frost' : 'text-mist'}"
-        onclick={() => toggleFav(track)}
-        aria-label="Favorite"
-      >
-        <Icon name="heart" size={18} filled={fav} />
-      </button>
-
-      {#if ondelete}
-        <button
-          class="text-mist grid h-9 w-9 shrink-0 place-items-center"
-          onclick={requestDelete}
-          aria-label="Delete"
-        >
-          <Icon name="trash" size={17} />
-        </button>
-      {/if}
-
-      <button
-        class="text-mist grid h-9 w-9 shrink-0 place-items-center"
-        onclick={() => openTrackSheet(track, ondelete)}
+        class="text-mist grid h-10 w-10 shrink-0 place-items-center"
+        onclick={() => openTrackSheet(track, ondelete, deletelabel)}
         aria-label="More actions"
       >
-        <Icon name="more" size={18} />
+        <Icon name="more" size={19} />
       </button>
     {/if}
   </div>

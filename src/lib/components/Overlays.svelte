@@ -10,6 +10,9 @@
   } from '../stores/ui.js'
   import {
     playlists,
+    favorites,
+    isFav,
+    toggleFav,
     createPlaylist,
     addToPlaylist,
     renameTrackEverywhere,
@@ -24,6 +27,8 @@
     if ($promptDialog) promptValue = $promptDialog.value || ''
   })
 
+  let sheetFav = $derived($trackSheet ? isFav($favorites, $trackSheet.track) : false)
+
   function confirmYes() {
     $confirmDialog?.onconfirm?.()
     confirmDialog.set(null)
@@ -35,6 +40,11 @@
   }
 
   // ── Track sheet actions ─────────────────────────────────
+  function sheetFavToggle() {
+    toggleFav($trackSheet.track)
+    trackSheet.set(null)
+  }
+
   function sheetQueue() {
     addToQueue($trackSheet.track)
     trackSheet.set(null)
@@ -74,13 +84,13 @@
     trackSheet.set(null)
   }
 
-  function sheetDelete() {
+  function sheetRemove() {
     const s = $trackSheet
     trackSheet.set(null)
     confirmDialog.set({
-      title: 'Delete track?',
-      message: `Remove "${s.track.title}" from this list?`,
-      confirmLabel: 'Delete',
+      title: `${s.deletelabel}?`,
+      message: `"${s.track.title}" will be removed.`,
+      confirmLabel: 'Remove',
       onconfirm: s.ondelete,
     })
   }
@@ -107,8 +117,8 @@
 
 <!-- Confirm dialog -->
 {#if $confirmDialog}
-  <div class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-8" transition:fade={{ duration: 150 }}>
-    <div class="glass w-full max-w-xs rounded-3xl p-5" transition:fly={{ y: 20, duration: 200 }}>
+  <div class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-8" transition:fade={{ duration: 150 }}>
+    <div class="glass-strong w-full max-w-xs rounded-3xl p-5" transition:fly={{ y: 20, duration: 200 }}>
       <h3 class="font-display mb-1 text-lg font-bold">{$confirmDialog.title}</h3>
       <p class="text-mist mb-5 text-sm">{$confirmDialog.message}</p>
       <div class="flex gap-2">
@@ -125,8 +135,8 @@
 
 <!-- Prompt dialog -->
 {#if $promptDialog}
-  <div class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-8" transition:fade={{ duration: 150 }}>
-    <div class="glass w-full max-w-xs rounded-3xl p-5" transition:fly={{ y: 20, duration: 200 }}>
+  <div class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-8" transition:fade={{ duration: 150 }}>
+    <div class="glass-strong w-full max-w-xs rounded-3xl p-5" transition:fly={{ y: 20, duration: 200 }}>
       <h3 class="font-display mb-3 text-lg font-bold">{$promptDialog.title}</h3>
       <input
         type="text"
@@ -149,14 +159,18 @@
 
 <!-- Track action sheet -->
 {#if $trackSheet}
-  <div class="fixed inset-0 z-[75] bg-black/50" transition:fade={{ duration: 150 }} onclick={() => trackSheet.set(null)}></div>
+  <div class="fixed inset-0 z-[75] bg-black/60" transition:fade={{ duration: 150 }} onclick={() => trackSheet.set(null)}></div>
   <div
-    class="glass fixed right-3 bottom-3 left-3 z-[76] rounded-3xl p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
+    class="glass-strong fixed right-3 bottom-3 left-3 z-[76] rounded-3xl p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
     transition:fly={{ y: 200, duration: 250 }}
   >
     <p class="font-display text-mist truncate px-3 pt-1 pb-2 text-xs font-semibold tracking-wide uppercase">
       {$trackSheet.track.title}
     </p>
+    <button class="text-ice flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm" onclick={sheetFavToggle}>
+      <span class={sheetFav ? 'text-frost' : ''}><Icon name="heart" size={18} filled={sheetFav} /></span>
+      {sheetFav ? 'Remove from favorites' : 'Add to favorites'}
+    </button>
     <button class="text-ice flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm" onclick={sheetQueue}>
       <Icon name="queue" size={18} /> Add to queue
     </button>
@@ -175,8 +189,8 @@
       </button>
     {/if}
     {#if $trackSheet.ondelete}
-      <button class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-red-400" onclick={sheetDelete}>
-        <Icon name="trash" size={18} /> Delete
+      <button class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-red-400" onclick={sheetRemove}>
+        <Icon name="trash" size={18} /> {$trackSheet.deletelabel}
       </button>
     {/if}
   </div>
@@ -184,9 +198,9 @@
 
 <!-- Playlist picker -->
 {#if $playlistPicker}
-  <div class="fixed inset-0 z-[75] bg-black/50" transition:fade={{ duration: 150 }} onclick={() => playlistPicker.set(null)}></div>
+  <div class="fixed inset-0 z-[75] bg-black/60" transition:fade={{ duration: 150 }} onclick={() => playlistPicker.set(null)}></div>
   <div
-    class="glass fixed right-3 bottom-3 left-3 z-[76] max-h-[60vh] overflow-y-auto rounded-3xl p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
+    class="glass-strong fixed right-3 bottom-3 left-3 z-[76] max-h-[60vh] overflow-y-auto rounded-3xl p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
     transition:fly={{ y: 200, duration: 250 }}
   >
     <p class="font-display text-mist px-3 pt-1 pb-2 text-xs font-semibold tracking-wide uppercase">

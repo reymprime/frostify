@@ -49,7 +49,7 @@
 {#if $settingsOpen}
   <div class="fixed inset-0 z-[75] bg-black/50" transition:fade={{ duration: 150 }} onclick={() => settingsOpen.set(false)}></div>
   <div
-    class="glass fixed right-3 bottom-3 left-3 z-[76] max-h-[80vh] overflow-y-auto rounded-3xl p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+    class="glass-strong fixed right-3 bottom-3 left-3 z-[76] max-h-[80vh] overflow-y-auto rounded-3xl p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]"
     transition:fly={{ y: 300, duration: 280 }}
   >
     <div class="mb-3 flex items-center justify-between px-1">

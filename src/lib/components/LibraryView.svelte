@@ -132,6 +132,7 @@
                   index={i}
                   onplay={() => playTrack(t, pl.tracks, i)}
                   ondelete={() => removeFromPlaylist(pl.id, t)}
+                  deletelabel="Remove from playlist"
                   reorder={reorderList === pl.id}
                   onhold={() => (reorderList = pl.id)}
                   onreorder={(from, to) => reorderPlaylist(pl.id, from, to)}
@@ -158,6 +159,7 @@
           index={i}
           onplay={() => playTrack(t, $favorites, i)}
           ondelete={() => toggleFav(t)}
+          deletelabel="Remove from favorites"
           reorder={reorderList === 'favs'}
           onhold={() => (reorderList = 'favs')}
           onreorder={(from, to) => reorderFavorites(from, to)}

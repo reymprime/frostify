@@ -51,6 +51,7 @@
         index={i}
         onplay={() => playTrack(t, $vaultTracks, i)}
         ondelete={() => deleteFromVault(t.vaultId)}
+        deletelabel="Delete from Vault"
       />
     {/each}
   </div>

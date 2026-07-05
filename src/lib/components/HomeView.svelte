@@ -53,6 +53,7 @@
           index={i}
           onplay={() => playTrack(t, $recents, i)}
           ondelete={() => removeFromRecents(t)}
+          deletelabel="Remove from recents"
         />
       {/each}
     </div>
@@ -69,6 +70,7 @@
           index={i}
           onplay={() => playTrack(t, $favorites, i)}
           ondelete={() => toggleFav(t)}
+          deletelabel="Remove from favorites"
         />
       {/each}
     </div>
