@@ -35,6 +35,42 @@ let engine = null
 let objectUrl = null
 let sleepInt = null
 
+// ── Media Session workaround (Sonata logic) ─────────────────
+// Ang YT iframe ang "may-ari" ng audio, kaya hindi lalabas ang
+// notification controller natin. Solusyon: magpatugtog ng halos-
+// silent stream na pag-aari ng Frostify → atin na ang session.
+let silentAudio = null
+let silentCtx = null
+
+function ensureSilentStream() {
+  if (silentAudio) return
+  try {
+    silentCtx = new (window.AudioContext || window.webkitAudioContext)()
+    const dest = silentCtx.createMediaStreamDestination()
+    const osc = silentCtx.createOscillator()
+    const gain = silentCtx.createGain()
+    gain.gain.value = 0.0001 // halos hindi maririnig, pero "audible" sa system
+    osc.connect(gain)
+    gain.connect(dest)
+    osc.start()
+    silentAudio = new Audio()
+    silentAudio.srcObject = dest.stream
+    silentAudio.loop = true
+  } catch (e) {
+    console.error('Silent stream failed:', e)
+  }
+}
+
+function silentPlay() {
+  ensureSilentStream()
+  silentCtx?.resume()
+  silentAudio?.play().catch(() => {})
+}
+
+function silentPause() {
+  silentAudio?.pause()
+}
+
 export function initPlayer() {
   audio = new Audio()
   audio.addEventListener('timeupdate', () => {
@@ -80,11 +116,14 @@ function createYT() {
           isPlaying.set(true)
           duration.set(yt.getDuration() || 0)
           startTick()
+          silentPlay() // kunin ang media session para sa notification controls
         } else if (e.data === S.PAUSED) {
           isPlaying.set(false)
           stopTick()
+          silentPause()
         } else if (e.data === S.ENDED) {
           stopTick()
+          silentPause()
           handleEnded()
         }
       },
@@ -128,6 +167,7 @@ async function startTrack(track) {
     if (!blob) return
     if (objectUrl) URL.revokeObjectURL(objectUrl)
     objectUrl = URL.createObjectURL(blob)
+    silentPause() // totoong audio na natin ang session
     attachFx(audio)
     audio.src = objectUrl
     audio.play()
@@ -259,6 +299,7 @@ function onSleepEnd() {
 function pauseAll() {
   if (engine === 'yt' && ytReady) yt.pauseVideo()
   if (audio) audio.pause()
+  silentPause()
 }
 
 // ── Internals ───────────────────────────────────────────────
