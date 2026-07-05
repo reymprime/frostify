@@ -1,11 +1,65 @@
 import { writable } from 'svelte/store'
 import { YT_API_KEY } from '../config.js'
 
-export const searchResults = writable([])
+// ── Persistent search results ───────────────────────────────
+// Naka-save ang huling results — buhay pa rin after app restart.
+function persistedResults() {
+  let value = []
+  try {
+    const raw = localStorage.getItem('frostify:lastSearch')
+    if (raw) value = JSON.parse(raw)
+  } catch {}
+  const store = writable(value)
+  store.subscribe((v) => {
+    try {
+      localStorage.setItem('frostify:lastSearch', JSON.stringify(v))
+    } catch {}
+  })
+  return store
+}
+
+export const searchResults = persistedResults()
 export const searching = writable(false)
 export const searchError = writable('')
 
-// ── YouTube link detection ──────────────────────────────────
+// ── API cache (quota saver) ─────────────────────────────────
+// Bawat playlist/video/query ay naka-cache ng 24 oras —
+// pag-paste mo ulit ng parehong link, ZERO API cost.
+const CACHE_KEY = 'frostify:searchCache'
+const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h
+const CACHE_MAX = 20 // max entries — inaalis ang pinakaluma
+
+function readCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}
+  } catch {
+    return {}
+  }
+}
+
+function cacheGet(key) {
+  const entry = readCache()[key]
+  if (!entry) return null
+  if (Date.now() - entry.at > CACHE_TTL) return null
+  return entry.tracks
+}
+
+function cacheSet(key, tracks) {
+  try {
+    const cache = readCache()
+    cache[key] = { tracks, at: Date.now() }
+    const keys = Object.keys(cache)
+    if (keys.length > CACHE_MAX) {
+      keys
+        .sort((a, b) => cache[a].at - cache[b].at)
+        .slice(0, keys.length - CACHE_MAX)
+        .forEach((k) => delete cache[k])
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+  } catch {}
+}
+
+// ── Link detection ──────────────────────────────────────────
 export function extractVideoId(input) {
   const str = input.trim()
   const patterns = [
@@ -21,57 +75,51 @@ export function extractVideoId(input) {
   return null
 }
 
-// Playlist IDs: nasa "list=" param (playlist page, o watch link na may list)
 export function extractPlaylistId(input) {
   const m = input.trim().match(/[?&]list=([\w-]+)/)
   return m ? m[1] : null
 }
 
+// ── Main search ─────────────────────────────────────────────
 export async function searchYouTube(query) {
   if (!query.trim()) return
+  searchError.set('')
+
+  // Cache check muna — libre ito, walang API cost
+  const playlistId = extractPlaylistId(query)
+  const videoId = playlistId ? null : extractVideoId(query)
+  const cacheKey = playlistId
+    ? `pl:${playlistId}`
+    : videoId
+      ? `v:${videoId}`
+      : `q:${query.trim().toLowerCase()}`
+
+  const cached = cacheGet(cacheKey)
+  if (cached) {
+    searchResults.set(cached)
+    return
+  }
+
   if (!YT_API_KEY) {
     searchError.set('Add your YouTube API key in src/lib/config.js to enable search.')
     return
   }
+
   searching.set(true)
-  searchError.set('')
   try {
-    // 1) Playlist link → i-load ang buong playlist
-    const playlistId = extractPlaylistId(query)
+    let tracks = []
     if (playlistId) {
-      const tracks = await fetchPlaylist(playlistId)
-      searchResults.set(tracks)
+      tracks = await fetchPlaylist(playlistId)
       if (!tracks.length) searchError.set('Empty o private ang playlist na yan.')
-      return
-    }
-
-    // 2) Video link → direct lookup
-    const videoId = extractVideoId(query)
-    if (videoId) {
+    } else if (videoId) {
       const track = await lookupVideo(videoId)
-      searchResults.set(track ? [track] : [])
+      tracks = track ? [track] : []
       if (!track) searchError.set('Video not found — baka private o deleted na.')
-      return
+    } else {
+      tracks = await textSearch(query)
     }
-
-    // 3) Normal text search
-    const url =
-      'https://www.googleapis.com/youtube/v3/search' +
-      `?part=snippet&type=video&videoCategoryId=10&maxResults=20` +
-      `&q=${encodeURIComponent(query)}&key=${YT_API_KEY}`
-    const res = await fetch(url)
-    if (!res.ok) throw await apiError(res)
-    const data = await res.json()
-    searchResults.set(
-      (data.items || [])
-        .filter((it) => it.id?.videoId)
-        .map((it) => ({
-          videoId: it.id.videoId,
-          title: decodeEntities(it.snippet.title),
-          artist: it.snippet.channelTitle,
-          art: it.snippet.thumbnails?.high?.url || it.snippet.thumbnails?.default?.url,
-        }))
-    )
+    searchResults.set(tracks)
+    if (tracks.length) cacheSet(cacheKey, tracks)
   } catch (e) {
     searchError.set(e.message)
   } finally {
@@ -79,7 +127,24 @@ export async function searchYouTube(query) {
   }
 }
 
-// Hanggang 100 tracks (2 pages) — sapat sa karamihan ng playlists
+async function textSearch(query) {
+  const url =
+    'https://www.googleapis.com/youtube/v3/search' +
+    `?part=snippet&type=video&videoCategoryId=10&maxResults=20` +
+    `&q=${encodeURIComponent(query)}&key=${YT_API_KEY}`
+  const res = await fetch(url)
+  if (!res.ok) throw await apiError(res)
+  const data = await res.json()
+  return (data.items || [])
+    .filter((it) => it.id?.videoId)
+    .map((it) => ({
+      videoId: it.id.videoId,
+      title: decodeEntities(it.snippet.title),
+      artist: it.snippet.channelTitle,
+      art: it.snippet.thumbnails?.high?.url || it.snippet.thumbnails?.default?.url,
+    }))
+}
+
 async function fetchPlaylist(playlistId) {
   const tracks = []
   let pageToken = ''
@@ -95,7 +160,6 @@ async function fetchPlaylist(playlistId) {
     for (const it of data.items || []) {
       const vid = it.snippet?.resourceId?.videoId
       const title = it.snippet?.title
-      // Laktawan ang deleted/private entries
       if (!vid || title === 'Deleted video' || title === 'Private video') continue
       tracks.push({
         videoId: vid,

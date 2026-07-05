@@ -3,11 +3,25 @@
   import TrackRow from './TrackRow.svelte'
   import { searchYouTube, searchResults, searching, searchError } from '../stores/search.js'
   import { playTrack } from '../stores/player.js'
+  import { createPlaylist, addToPlaylist } from '../stores/library.js'
+  import { askPrompt } from '../stores/ui.js'
 
   let query = $state('')
 
   function submit() {
     searchYouTube(query)
+  }
+
+  // I-save ang buong results bilang permanenteng Frostify playlist
+  function saveAsPlaylist() {
+    askPrompt({
+      title: 'Save as playlist',
+      placeholder: 'Playlist name…',
+      onsubmit: (name) => {
+        const pl = createPlaylist(name)
+        for (const t of $searchResults) addToPlaylist(pl.id, t)
+      },
+    })
   }
 </script>
 
@@ -33,10 +47,19 @@
   </div>
 
   {#if $searchError}
-    <div class="glass rounded-2xl p-4 text-sm">
+    <div class="glass-strong rounded-2xl p-4 text-sm">
       <p class="text-frost mb-1 font-semibold">Search unavailable</p>
       <p class="text-mist">{$searchError}</p>
     </div>
+  {/if}
+
+  {#if $searchResults.length > 1}
+    <button
+      class="glass text-frost mb-3 flex w-full items-center justify-center gap-2 rounded-2xl p-3 text-sm font-semibold active:scale-[0.98] transition-transform"
+      onclick={saveAsPlaylist}
+    >
+      <Icon name="plus" size={16} /> Save all {$searchResults.length} tracks as playlist
+    </button>
   {/if}
 
   <div class="space-y-2 pb-4">
