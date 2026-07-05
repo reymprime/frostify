@@ -7,7 +7,9 @@
   import NowPlayingBar from './lib/components/NowPlayingBar.svelte'
   import NowPlaying from './lib/components/NowPlaying.svelte'
   import BottomNav from './lib/components/BottomNav.svelte'
-  import { initPlayer } from './lib/stores/player.js'
+  import Overlays from './lib/components/Overlays.svelte'
+  import SettingsSheet from './lib/components/SettingsSheet.svelte'
+  import { initPlayer, showVideo } from './lib/stores/player.js'
 
   let activeTab = $state('home')
   let showNowPlaying = $state(false)
@@ -19,8 +21,13 @@
 
 <div class="aurora"></div>
 
-<!-- Hidden YouTube engine — huwag itong tanggalin! -->
-<div class="pointer-events-none fixed right-0 bottom-0 h-px w-px opacity-0" aria-hidden="true">
+<!-- YouTube engine — hidden by default, lumalabas sa "watch mode" (eye) -->
+<div
+  class={$showVideo
+    ? 'glass pointer-events-none fixed top-20 left-1/2 z-[60] aspect-video w-[92%] max-w-sm -translate-x-1/2 overflow-hidden rounded-2xl shadow-2xl'
+    : 'pointer-events-none fixed right-0 bottom-0 h-px w-px opacity-0'}
+  aria-hidden={!$showVideo}
+>
   <div id="yt-player"></div>
 </div>
 
@@ -46,3 +53,6 @@
 {#if showNowPlaying}
   <NowPlaying onclose={() => (showNowPlaying = false)} />
 {/if}
+
+<Overlays />
+<SettingsSheet />

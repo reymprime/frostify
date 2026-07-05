@@ -45,19 +45,13 @@
   </button>
 
   <div class="space-y-2 pb-4">
-    {#each $vaultTracks as t (t.vaultId)}
-      <div class="flex items-center gap-2">
-        <div class="min-w-0 flex-1">
-          <TrackRow track={t} onplay={() => playTrack(t, $vaultTracks, $vaultTracks.indexOf(t))} />
-        </div>
-        <button
-          class="text-mist grid h-9 w-9 shrink-0 place-items-center"
-          onclick={() => deleteFromVault(t.vaultId)}
-          aria-label="Delete from vault"
-        >
-          <Icon name="trash" size={16} />
-        </button>
-      </div>
+    {#each $vaultTracks as t, i (t.vaultId)}
+      <TrackRow
+        track={t}
+        index={i}
+        onplay={() => playTrack(t, $vaultTracks, i)}
+        ondelete={() => deleteFromVault(t.vaultId)}
+      />
     {/each}
   </div>
 

@@ -1,8 +1,9 @@
 <script>
   import Icon from './Icon.svelte'
   import TrackRow from './TrackRow.svelte'
-  import { recents, favorites } from '../stores/library.js'
+  import { recents, favorites, removeFromRecents, toggleFav } from '../stores/library.js'
   import { playTrack } from '../stores/player.js'
+  import { settingsOpen } from '../stores/ui.js'
 
   let { gotosearch } = $props()
 
@@ -11,10 +12,21 @@
 </script>
 
 <div class="px-5">
-  <p class="text-mist text-xs font-medium tracking-widest uppercase">{greeting}</p>
-  <h1 class="font-display mb-5 text-2xl font-bold tracking-tight">
-    Frost<span class="text-frost">ify</span>
-  </h1>
+  <div class="flex items-start justify-between">
+    <div>
+      <p class="text-mist text-xs font-medium tracking-widest uppercase">{greeting}</p>
+      <h1 class="font-display mb-5 text-2xl font-bold tracking-tight">
+        Frost<span class="text-frost">ify</span>
+      </h1>
+    </div>
+    <button
+      class="glass text-mist grid h-10 w-10 place-items-center rounded-full"
+      onclick={() => settingsOpen.set(true)}
+      aria-label="Settings"
+    >
+      <Icon name="settings" size={18} />
+    </button>
+  </div>
 
   {#if !$recents.length && !$favorites.length}
     <div class="glass mt-10 rounded-3xl p-8 text-center">
@@ -36,7 +48,12 @@
     </h2>
     <div class="mb-6 space-y-2">
       {#each $recents.slice(0, 8) as t, i (t.videoId || t.vaultId || i)}
-        <TrackRow track={t} onplay={() => playTrack(t, $recents, i)} />
+        <TrackRow
+          track={t}
+          index={i}
+          onplay={() => playTrack(t, $recents, i)}
+          ondelete={() => removeFromRecents(t)}
+        />
       {/each}
     </div>
   {/if}
@@ -47,7 +64,12 @@
     </h2>
     <div class="space-y-2 pb-4">
       {#each $favorites as t, i (t.videoId || t.vaultId || i)}
-        <TrackRow track={t} onplay={() => playTrack(t, $favorites, i)} />
+        <TrackRow
+          track={t}
+          index={i}
+          onplay={() => playTrack(t, $favorites, i)}
+          ondelete={() => toggleFav(t)}
+        />
       {/each}
     </div>
   {/if}

@@ -1,6 +1,5 @@
-import { writable, get } from 'svelte/store'
+import { writable } from 'svelte/store'
 
-// ── Persisted store helper ──────────────────────────────────
 function persisted(key, initial) {
   let value = initial
   try {
@@ -43,6 +42,10 @@ export function addRecent(track) {
   })
 }
 
+export function removeFromRecents(track) {
+  recents.update((list) => list.filter((t) => trackId(t) !== trackId(track)))
+}
+
 export function createPlaylist(name) {
   const pl = { id: crypto.randomUUID(), name, tracks: [] }
   playlists.update((list) => [pl, ...list])
@@ -59,6 +62,50 @@ export function addToPlaylist(playlistId, track) {
   )
 }
 
+export function removeFromPlaylist(playlistId, track) {
+  playlists.update((list) =>
+    list.map((pl) =>
+      pl.id === playlistId
+        ? { ...pl, tracks: pl.tracks.filter((t) => trackId(t) !== trackId(track)) }
+        : pl
+    )
+  )
+}
+
 export function deletePlaylist(playlistId) {
   playlists.update((list) => list.filter((pl) => pl.id !== playlistId))
+}
+
+export function renamePlaylist(playlistId, name) {
+  playlists.update((list) =>
+    list.map((pl) => (pl.id === playlistId ? { ...pl, name } : pl))
+  )
+}
+
+// ── Reorder (hand gestures) ─────────────────────────────────
+function move(arr, from, to) {
+  const n = [...arr]
+  const clamped = Math.max(0, Math.min(n.length - 1, to))
+  const [item] = n.splice(from, 1)
+  n.splice(clamped, 0, item)
+  return n
+}
+
+export function reorderFavorites(from, to) {
+  favorites.update((l) => move(l, from, to))
+}
+
+export function reorderPlaylist(playlistId, from, to) {
+  playlists.update((list) =>
+    list.map((pl) => (pl.id === playlistId ? { ...pl, tracks: move(pl.tracks, from, to) } : pl))
+  )
+}
+
+// ── Rename track sa lahat ng listahan ──────────────────────
+export function renameTrackEverywhere(track, title) {
+  const id = trackId(track)
+  const up = (l) => l.map((t) => (trackId(t) === id ? { ...t, title } : t))
+  favorites.update(up)
+  recents.update(up)
+  playlists.update((list) => list.map((pl) => ({ ...pl, tracks: up(pl.tracks) })))
 }

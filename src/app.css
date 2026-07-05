@@ -93,3 +93,16 @@ input[type='range'] {
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* ── YouTube watch mode — iframe fills its container ────── */
+#yt-player,
+iframe#yt-player {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Liquid glass polish — Apple-like specular edge */
+.glass {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}

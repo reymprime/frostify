@@ -3,7 +3,7 @@ import { addRecent } from './library.js'
 import { getVaultBlob } from './vault.js'
 import { attachFx } from './audiofx.js'
 
-// ── Frostify Dual Playback Engine v3 ────────────────────────
+// ── Frostify Dual Playback Engine v4 ────────────────────────
 export const currentTrack = writable(null)
 export const isPlaying = writable(false)
 export const progress = writable(0)
@@ -11,9 +11,20 @@ export const duration = writable(0)
 export const queue = writable([])
 export const queueIndex = writable(-1)
 export const shuffle = writable(false)
-export const repeat = writable('off') // 'off' | 'all' | 'one'
+export const repeat = writable('off')
 export const activeEngine = writable(null) // 'yt' | 'local'
-export const sleepRemaining = writable(0) // seconds; 0 = off
+export const sleepRemaining = writable(0)
+export const showVideo = writable(false) // eye toggle (YouTube lang)
+
+// Auto-close app pag natapos ang sleep timer (persisted)
+export const autoCloseOnSleep = writable(
+  localStorage.getItem('frostify:autoclose') === '1'
+)
+autoCloseOnSleep.subscribe((v) => {
+  try {
+    localStorage.setItem('frostify:autoclose', v ? '1' : '0')
+  } catch {}
+})
 
 let yt = null
 let ytReady = false
@@ -81,7 +92,6 @@ function createYT() {
   })
 }
 
-// ── Playback ────────────────────────────────────────────────
 export function playTrack(track, list = null, index = -1) {
   if (list) {
     queue.set(list)
@@ -113,11 +123,12 @@ async function startTrack(track) {
     stopYT()
     engine = 'local'
     activeEngine.set('local')
+    showVideo.set(false) // walang video sa offline source
     const blob = await getVaultBlob(track.vaultId)
     if (!blob) return
     if (objectUrl) URL.revokeObjectURL(objectUrl)
     objectUrl = URL.createObjectURL(blob)
-    attachFx(audio) // EQ + visualizer chain (Sonata logic)
+    attachFx(audio)
     audio.src = objectUrl
     audio.play()
   }
@@ -187,6 +198,18 @@ export function cycleRepeat() {
   repeat.update((r) => (r === 'off' ? 'all' : r === 'all' ? 'one' : 'off'))
 }
 
+export function toggleVideo() {
+  if (get(activeEngine) !== 'yt') return
+  showVideo.update((v) => !v)
+}
+
+// Pag na-rename ang kasalukuyang track
+export function updateCurrentTitle(title) {
+  currentTrack.update((t) => (t ? { ...t, title } : t))
+  const t = get(currentTrack)
+  if (t) updateMediaMetadata(t)
+}
+
 function handleEnded() {
   if (get(repeat) === 'one') {
     seekTo(0)
@@ -198,7 +221,7 @@ function handleEnded() {
   next()
 }
 
-// ── Sleep Timer (Sonata logic) ──────────────────────────────
+// ── Sleep Timer + Auto-close ────────────────────────────────
 export function startSleepTimer(seconds) {
   cancelSleepTimer()
   if (!seconds || seconds <= 0) return
@@ -208,7 +231,7 @@ export function startSleepTimer(seconds) {
       if (s <= 1) {
         clearInterval(sleepInt)
         sleepInt = null
-        pauseAll()
+        onSleepEnd()
         return 0
       }
       return s - 1
@@ -220,6 +243,17 @@ export function cancelSleepTimer() {
   if (sleepInt) clearInterval(sleepInt)
   sleepInt = null
   sleepRemaining.set(0)
+}
+
+function onSleepEnd() {
+  pauseAll()
+  if (get(autoCloseOnSleep)) {
+    // Gumagana sa installed PWA; sa regular browser tab pwedeng
+    // i-block ito ng browser — pause pa rin ang fallback.
+    try {
+      window.close()
+    } catch {}
+  }
 }
 
 function pauseAll() {

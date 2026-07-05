@@ -74,3 +74,19 @@ export async function deleteFromVault(vaultId) {
   await new Promise((res) => (tx.oncomplete = res))
   await refreshVault()
 }
+
+export async function renameVaultTrack(vaultId, title) {
+  const db = await openDB()
+  const tx = db.transaction(STORE, 'readwrite')
+  const store = tx.objectStore(STORE)
+  const req = store.get(vaultId)
+  req.onsuccess = () => {
+    const rec = req.result
+    if (rec) {
+      rec.title = title
+      store.put(rec)
+    }
+  }
+  await new Promise((res) => (tx.oncomplete = res))
+  await refreshVault()
+}

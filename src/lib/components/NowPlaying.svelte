@@ -13,12 +13,15 @@
     repeat,
     activeEngine,
     sleepRemaining,
+    showVideo,
+    autoCloseOnSleep,
     togglePlay,
     seekTo,
     next,
     prev,
     toggleShuffle,
     cycleRepeat,
+    toggleVideo,
     playTrack,
     startSleepTimer,
     cancelSleepTimer,
@@ -28,7 +31,7 @@
   import { favorites, isFav, toggleFav } from '../stores/library.js'
 
   let { onclose } = $props()
-  let panel = $state('art') // 'art' | 'queue' | 'eq' | 'sleep'
+  let panel = $state('art')
   let customMins = $state('')
 
   let fav = $derived($currentTrack ? isFav($favorites, $currentTrack) : false)
@@ -44,12 +47,14 @@
 >
   <div class="aurora"></div>
 
-  <!-- Header -->
+  <!-- Header — live status label -->
   <div class="flex shrink-0 items-center justify-between px-6 pt-6">
     <button class="glass grid h-10 w-10 place-items-center rounded-full" onclick={onclose} aria-label="Close">
       <Icon name="chevron-down" />
     </button>
-    <p class="text-mist text-xs font-medium tracking-widest uppercase">Now playing</p>
+    <p class="text-xs font-medium tracking-widest uppercase {$isPlaying ? 'text-frost' : 'text-mist'}">
+      {$isPlaying ? 'Now Playing' : 'Not Playing'}
+    </p>
     <button
       class="glass grid h-10 w-10 place-items-center rounded-full {panel === 'queue' ? 'text-frost' : ''}"
       onclick={() => toggle('queue')}
@@ -61,20 +66,32 @@
 
   {#if $currentTrack}
     {#if panel === 'art'}
-      <!-- Art + visualizer -->
       <div class="flex min-h-64 flex-1 flex-col items-center justify-center gap-4 px-8 py-6">
-        {#if $currentTrack.art}
-          <img
-            src={$currentTrack.art}
-            alt={$currentTrack.title}
-            class="aspect-square w-full max-w-sm rounded-3xl object-cover shadow-2xl
-                   {$isPlaying ? 'scale-100' : 'scale-95'} transition-transform duration-500"
-          />
-        {:else}
-          <div class="bg-glacier text-frost grid aspect-square w-full max-w-sm place-items-center rounded-3xl">
-            <Icon name="music" size={72} />
-          </div>
-        {/if}
+        <div class="relative w-full max-w-sm">
+          {#if $currentTrack.art}
+            <img
+              src={$currentTrack.art}
+              alt={$currentTrack.title}
+              class="aspect-square w-full rounded-3xl object-cover shadow-2xl
+                     {$isPlaying ? 'scale-100' : 'scale-95'} transition-transform duration-500"
+            />
+          {:else}
+            <div class="bg-glacier text-frost grid aspect-square w-full place-items-center rounded-3xl">
+              <Icon name="music" size={72} />
+            </div>
+          {/if}
+
+          <!-- Eye toggle — YouTube lang, wala sa offline -->
+          {#if $activeEngine === 'yt'}
+            <button
+              class="glass text-frost absolute right-3 bottom-3 grid h-11 w-11 place-items-center rounded-full active:scale-95 transition-transform"
+              onclick={toggleVideo}
+              aria-label={$showVideo ? 'Hide video' : 'Watch video'}
+            >
+              <Icon name={$showVideo ? 'eye-off' : 'eye'} size={20} />
+            </button>
+          {/if}
+        </div>
         {#if $activeEngine === 'local'}
           <Visualizer />
         {/if}
@@ -86,7 +103,8 @@
         </p>
         {#each $queue as t, i (i)}
           <button
-            class="glass flex w-full items-center gap-3 rounded-xl p-2.5 text-left"
+            class="glass flex w-full items-center gap-3 rounded-xl p-2.5 text-left
+                   {i === $queueIndex ? 'border-frost/50' : ''}"
             onclick={() => playTrack(t, $queue, i)}
           >
             <span class="text-mist w-5 text-xs tabular-nums">{i + 1}</span>
@@ -101,7 +119,6 @@
         {/each}
       </div>
     {:else if panel === 'eq'}
-      <!-- Equalizer -->
       <div class="flex-1 space-y-4 px-6 py-4">
         <p class="font-display text-mist text-sm font-semibold tracking-wide uppercase">Equalizer</p>
         <div class="flex flex-wrap gap-2">
@@ -139,17 +156,15 @@
         {/if}
       </div>
     {:else if panel === 'sleep'}
-      <!-- Sleep timer -->
       <div class="flex-1 space-y-4 px-6 py-4">
         <p class="font-display text-mist text-sm font-semibold tracking-wide uppercase">Sleep timer</p>
         {#if $sleepRemaining > 0}
           <div class="glass rounded-2xl p-6 text-center">
             <p class="font-display text-frost text-4xl font-bold tabular-nums">{fmt($sleepRemaining)}</p>
-            <p class="text-mist mt-1 text-xs">Music pauses when this hits zero</p>
-            <button
-              class="glass text-frost mt-4 rounded-full px-6 py-2 text-sm font-semibold"
-              onclick={cancelSleepTimer}
-            >
+            <p class="text-mist mt-1 text-xs">
+              {$autoCloseOnSleep ? 'App closes when this hits zero' : 'Music pauses when this hits zero'}
+            </p>
+            <button class="glass text-frost mt-4 rounded-full px-6 py-2 text-sm font-semibold" onclick={cancelSleepTimer}>
               Cancel timer
             </button>
           </div>
@@ -182,6 +197,21 @@
             </button>
           </div>
         {/if}
+
+        <!-- Auto-close toggle -->
+        <label class="glass flex items-center justify-between gap-3 rounded-2xl p-4">
+          <span class="text-ice flex items-center gap-2 text-sm">
+            <Icon name="power" size={16} /> Auto-close app after timer
+          </span>
+          <input
+            type="checkbox"
+            bind:checked={$autoCloseOnSleep}
+            class="bg-glacier checked:bg-frost before:bg-ice relative h-5 w-9 shrink-0 appearance-none rounded-full transition-colors before:absolute before:top-0.5 before:left-0.5 before:h-4 before:w-4 before:rounded-full before:transition-transform checked:before:translate-x-4"
+          />
+        </label>
+        <p class="text-mist text-xs">
+          Note: sure itong gumagana sa installed PWA. Sa regular browser tab, minsan hina-harang ng browser ang auto-close — sa ganoong kaso, pause na lang ang mangyayari.
+        </p>
       </div>
     {/if}
 
@@ -201,7 +231,6 @@
         </button>
       </div>
 
-      <!-- Seek -->
       <div>
         <input
           type="range"
@@ -218,13 +247,8 @@
         </div>
       </div>
 
-      <!-- Transport -->
       <div class="flex items-center justify-between">
-        <button
-          class={$shuffle ? 'text-frost' : 'text-mist'}
-          onclick={toggleShuffle}
-          aria-label="Shuffle"
-        >
+        <button class={$shuffle ? 'text-frost' : 'text-mist'} onclick={toggleShuffle} aria-label="Shuffle">
           <Icon name="shuffle" size={20} />
         </button>
         <button class="text-ice active:scale-90 transition-transform" onclick={prev} aria-label="Previous">
@@ -252,7 +276,6 @@
         </button>
       </div>
 
-      <!-- Extras: EQ + Sleep -->
       <div class="flex items-center justify-center gap-3">
         <button
           class="glass flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold

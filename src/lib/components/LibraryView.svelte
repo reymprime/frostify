@@ -7,16 +7,41 @@
     createPlaylist,
     addToPlaylist,
     deletePlaylist,
+    renamePlaylist,
+    removeFromPlaylist,
+    reorderPlaylist,
+    reorderFavorites,
+    toggleFav,
   } from '../stores/library.js'
   import { playTrack, currentTrack } from '../stores/player.js'
+  import { askConfirm, askPrompt } from '../stores/ui.js'
 
   let newName = $state('')
   let openId = $state(null)
+  let reorderList = $state(null) // 'favs' | playlist id
 
   function create() {
     if (!newName.trim()) return
     createPlaylist(newName.trim())
     newName = ''
+  }
+
+  function requestDeletePlaylist(pl) {
+    askConfirm({
+      title: 'Delete playlist?',
+      message: `"${pl.name}" (${pl.tracks.length} tracks) will be removed.`,
+      confirmLabel: 'Delete',
+      onconfirm: () => deletePlaylist(pl.id),
+    })
+  }
+
+  function requestRenamePlaylist(pl) {
+    askPrompt({
+      title: 'Rename playlist',
+      placeholder: 'Playlist name…',
+      value: pl.name,
+      onsubmit: (name) => renamePlaylist(pl.id, name),
+    })
   }
 </script>
 
@@ -39,12 +64,21 @@
     </button>
   </div>
 
+  {#if reorderList}
+    <button
+      class="bg-frost text-ink mb-4 flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-sm font-bold"
+      onclick={() => (reorderList = null)}
+    >
+      <Icon name="check" size={16} /> Done reordering
+    </button>
+  {/if}
+
   {#if $playlists.length}
     <h2 class="font-display text-mist mb-3 text-sm font-semibold tracking-wide uppercase">Playlists</h2>
     <div class="mb-6 space-y-2">
       {#each $playlists as pl (pl.id)}
         <div class="glass rounded-2xl p-3">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <button
               class="flex min-w-0 flex-1 items-center gap-3 text-left"
               onclick={() => (openId = openId === pl.id ? null : pl.id)}
@@ -68,7 +102,14 @@
             {/if}
             <button
               class="text-mist grid h-9 w-9 shrink-0 place-items-center"
-              onclick={() => deletePlaylist(pl.id)}
+              onclick={() => requestRenamePlaylist(pl)}
+              aria-label="Rename playlist"
+            >
+              <Icon name="pencil" size={16} />
+            </button>
+            <button
+              class="text-mist grid h-9 w-9 shrink-0 place-items-center"
+              onclick={() => requestDeletePlaylist(pl)}
               aria-label="Delete playlist"
             >
               <Icon name="trash" size={16} />
@@ -86,7 +127,15 @@
                 </button>
               {/if}
               {#each pl.tracks as t, i (t.videoId || t.vaultId || i)}
-                <TrackRow track={t} showqueue={false} onplay={() => playTrack(t, pl.tracks, i)} />
+                <TrackRow
+                  track={t}
+                  index={i}
+                  onplay={() => playTrack(t, pl.tracks, i)}
+                  ondelete={() => removeFromPlaylist(pl.id, t)}
+                  reorder={reorderList === pl.id}
+                  onhold={() => (reorderList = pl.id)}
+                  onreorder={(from, to) => reorderPlaylist(pl.id, from, to)}
+                />
               {/each}
               {#if !pl.tracks.length && !$currentTrack}
                 <p class="text-mist p-2 text-xs">Play a song, then add it here.</p>
@@ -104,10 +153,18 @@
   {#if $favorites.length}
     <div class="space-y-2 pb-4">
       {#each $favorites as t, i (t.videoId || t.vaultId || i)}
-        <TrackRow track={t} onplay={() => playTrack(t, $favorites, i)} />
+        <TrackRow
+          track={t}
+          index={i}
+          onplay={() => playTrack(t, $favorites, i)}
+          ondelete={() => toggleFav(t)}
+          reorder={reorderList === 'favs'}
+          onhold={() => (reorderList = 'favs')}
+          onreorder={(from, to) => reorderFavorites(from, to)}
+        />
       {/each}
     </div>
   {:else}
-    <p class="text-mist pb-4 text-sm">Tap the heart on any track to save it here.</p>
+    <p class="text-mist pb-4 text-sm">Tap the heart on any track — or swipe left — to save it here.</p>
   {/if}
 </div>
