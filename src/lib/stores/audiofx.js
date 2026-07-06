@@ -27,6 +27,14 @@ function loadGains() {
 export const eqGains = writable(loadGains())
 export const eqEnabled = writable(localStorage.getItem('frostify:eqOn') === '1')
 
+// IMPORTANTE: nakadeclare BAGO ang subscribe sa baba —
+// tumatakbo agad ang subscribe callback sa startup at
+// ginagamit nito ang filters (TDZ crash kung nasa baba ito).
+let ctx = null
+let filters = []
+let analyser = null
+let attached = false
+
 eqEnabled.subscribe((v) => {
   try {
     localStorage.setItem('frostify:eqOn', v ? '1' : '0')
@@ -34,18 +42,13 @@ eqEnabled.subscribe((v) => {
   applyBypass()
 })
 
-let ctx = null
-let filters = []
-let analyser = null
-let attached = false
-
 export function attachFx(audioEl) {
   if (attached) {
     ctx?.resume()
     return
   }
   try {
-    ctx = new (window.AudioContext || window.webkitAudioContext)()
+    ctx = new(window.AudioContext || window.webkitAudioContext)()
     const source = ctx.createMediaElementSource(audioEl)
     const gains = get(eqGains)
     const on = get(eqEnabled)
@@ -94,7 +97,8 @@ export function setBand(i, db) {
 }
 
 export function applyPreset(name) {
-  ;(presets[name] || presets.Flat).forEach((db, i) => setBand(i, db))
+  ;
+  (presets[name] || presets.Flat).forEach((db, i) => setBand(i, db))
 }
 
 export function toggleEq() {
