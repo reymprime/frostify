@@ -16,6 +16,23 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <!-- ══ TEMPORARY DEBUG OVERLAY — tanggalin pag ayos na ══ -->
+    <script>
+      function frostifyShowError(msg) {
+        var d = document.createElement('pre')
+        d.style.cssText =
+          'position:fixed;top:0;left:0;right:0;z-index:999999;background:#3a0a0a;color:#ff9a9a;padding:14px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto;margin:0;border-bottom:2px solid #ff5555;font-family:monospace'
+        d.textContent = msg
+        document.body ? document.body.appendChild(d) : addEventListener('DOMContentLoaded', function(){ document.body.appendChild(d) })
+      }
+      window.addEventListener('error', function (e) {
+        frostifyShowError('⛔ ERROR: ' + e.message + '\n\n📄 ' + (e.filename || '?') + '\n📍 line ' + e.lineno + ':' + e.colno)
+      })
+      window.addEventListener('unhandledrejection', function (e) {
+        frostifyShowError('⛔ PROMISE ERROR: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason))
+      })
+    </script>
+    <!-- ══ END DEBUG OVERLAY ══ -->
   </head>
   <body>
     <div id="app"></div>
