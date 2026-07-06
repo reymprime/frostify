@@ -120,15 +120,21 @@
   <div class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-8" transition:fade={{ duration: 150 }}>
     <div class="glass-strong w-full max-w-xs rounded-3xl p-5" transition:fly={{ y: 20, duration: 200 }}>
       <h3 class="font-display mb-1 text-lg font-bold">{$confirmDialog.title}</h3>
-      <p class="text-mist mb-5 text-sm">{$confirmDialog.message}</p>
-      <div class="flex gap-2">
-        <button class="glass flex-1 rounded-full py-2.5 text-sm font-semibold" onclick={() => confirmDialog.set(null)}>
-          Cancel
+      <p class="text-mist mb-5 text-sm leading-relaxed">{$confirmDialog.message}</p>
+      {#if $confirmDialog.infoOnly}
+        <button class="bg-frost text-ink w-full rounded-full py-2.5 text-sm font-bold" onclick={() => confirmDialog.set(null)}>
+          {$confirmDialog.confirmLabel || 'Got it'}
         </button>
-        <button class="flex-1 rounded-full bg-red-400/90 py-2.5 text-sm font-bold text-black" onclick={confirmYes}>
-          {$confirmDialog.confirmLabel || 'Confirm'}
-        </button>
-      </div>
+      {:else}
+        <div class="flex gap-2">
+          <button class="glass flex-1 rounded-full py-2.5 text-sm font-semibold" onclick={() => confirmDialog.set(null)}>
+            Cancel
+          </button>
+          <button class="flex-1 rounded-full bg-red-400/90 py-2.5 text-sm font-bold text-black" onclick={confirmYes}>
+            {$confirmDialog.confirmLabel || 'Confirm'}
+          </button>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}

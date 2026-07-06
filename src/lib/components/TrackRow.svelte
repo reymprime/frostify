@@ -127,7 +127,7 @@
   {/if}
 
   <div
-    class="glass flex items-center gap-2 rounded-xl p-2 transition-transform
+    class="glass no-select flex items-center gap-2 rounded-xl p-2 transition-transform
            {playing ? 'border-frost/50 shadow-frost/10 shadow-lg' : ''}
            {dragging ? 'border-frost/60' : ''}"
     style="transform: translateX({dx}px); touch-action: pan-y;"

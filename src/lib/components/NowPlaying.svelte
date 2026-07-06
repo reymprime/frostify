@@ -28,8 +28,9 @@
     cancelSleepTimer,
     fmt,
   } from '../stores/player.js'
-  import { eqGains, setBand, applyPreset, presets, BAND_LABELS } from '../stores/audiofx.js'
+  import { eqGains, eqEnabled, setBand, applyPreset, toggleEq, presets, BAND_LABELS } from '../stores/audiofx.js'
   import { favorites, isFav, toggleFav } from '../stores/library.js'
+  import { showToast } from '../stores/toast.js'
 
   let { onclose } = $props()
   let panel = $state('art')
@@ -40,6 +41,37 @@
   function toggle(p) {
     panel = panel === p ? 'art' : p
   }
+
+  // ── Toggle handlers w/ toast + tap-for-info ───────────────
+  const INFO = {
+    autoclose: {
+      title: 'Auto-close after timer',
+      body: 'This feature is fully functional on the installed PWA. On regular browser tabs, browser security policies may occasionally block the auto-close action; in such cases, the app will pause the playback instead.',
+    },
+    wake: {
+      title: 'Keep screen awake (YouTube)',
+      body: 'Screen Wake Lock prevents the screen from turning off while streaming YouTube tracks to ensure uninterrupted playback. Please note that keeping the screen active will increase battery consumption. This feature is automatically disabled for Vault tracks, which support background playback even when the device is locked.',
+    },
+    eq: {
+      title: 'Equalizer',
+      body: 'Technical Note: The Equalizer (EQ) applies exclusively to Vault tracks. Due to browser security and cross-origin restrictions, YouTube audio streams cannot be routed through the Web Audio API chain.',
+    },
+  }
+
+  function onAutoClose(e) {
+    autoCloseOnSleep.set(e.target.checked)
+    if (e.target.checked) showToast('Auto-close app after timer is Turned On', INFO.autoclose)
+  }
+
+  function onWake(e) {
+    keepAwake.set(e.target.checked)
+    if (e.target.checked) showToast('Keep screen awake is Turned On', INFO.wake)
+  }
+
+  function onEqToggle() {
+    toggleEq()
+    showToast(`Equalizer Turned ${$eqEnabled ? 'On' : 'Off'}`, INFO.eq)
+  }
 </script>
 
 <div
@@ -48,7 +80,6 @@
 >
   <div class="aurora"></div>
 
-  <!-- Header — live status label -->
   <div class="flex shrink-0 items-center justify-between px-6 pt-6">
     <button class="glass grid h-10 w-10 place-items-center rounded-full" onclick={onclose} aria-label="Close">
       <Icon name="chevron-down" />
@@ -82,7 +113,6 @@
             </div>
           {/if}
 
-          <!-- Eye toggle — YouTube lang, wala sa offline -->
           {#if $activeEngine === 'yt'}
             <button
               class="glass text-frost absolute right-3 bottom-3 grid h-11 w-11 place-items-center rounded-full active:scale-95 transition-transform"
@@ -104,8 +134,7 @@
         </p>
         {#each $queue as t, i (i)}
           <button
-            class="glass flex w-full items-center gap-3 rounded-xl p-2.5 text-left
-                   {i === $queueIndex ? 'border-frost/50' : ''}"
+            class="glass flex w-full items-center gap-3 rounded-xl p-2.5 text-left {i === $queueIndex ? 'border-frost/50' : ''}"
             onclick={() => playTrack(t, $queue, i)}
           >
             <span class="text-mist w-5 text-xs tabular-nums">{i + 1}</span>
@@ -120,41 +149,52 @@
         {/each}
       </div>
     {:else if panel === 'eq'}
-      <div class="flex-1 space-y-4 px-6 py-4">
-        <p class="font-display text-mist text-sm font-semibold tracking-wide uppercase">Equalizer</p>
+      <!-- Vertical 12-band EQ -->
+      <div class="flex-1 space-y-4 px-5 py-4">
+        <div class="flex items-center justify-between">
+          <p class="font-display text-mist text-sm font-semibold tracking-wide uppercase">Equalizer</p>
+          <button
+            class="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold
+                   {$eqEnabled ? 'bg-frost text-ink' : 'glass text-mist'}"
+            onclick={onEqToggle}
+          >
+            <Icon name="power" size={13} /> {$eqEnabled ? 'On' : 'Off'}
+          </button>
+        </div>
+
         <div class="flex flex-wrap gap-2">
           {#each Object.keys(presets) as name}
             <button
-              class="glass text-frost rounded-full px-4 py-1.5 text-xs font-semibold active:scale-95 transition-transform"
+              class="glass text-frost rounded-full px-3 py-1.5 text-xs font-semibold active:scale-95 transition-transform"
               onclick={() => applyPreset(name)}
             >
               {name}
             </button>
           {/each}
         </div>
-        <div class="glass space-y-3 rounded-2xl p-4">
-          {#each $eqGains as gain, i}
-            <div class="flex items-center gap-3">
-              <span class="text-mist w-8 text-right text-xs tabular-nums">{BAND_LABELS[i]}</span>
-              <input
-                type="range"
-                min="-12"
-                max="12"
-                step="1"
-                value={gain}
-                oninput={(e) => setBand(i, Number(e.target.value))}
-                class="h-1 flex-1"
-                aria-label={`${BAND_LABELS[i]} Hz`}
-              />
-              <span class="text-frost w-9 text-xs tabular-nums">{gain > 0 ? '+' : ''}{gain}dB</span>
-            </div>
-          {/each}
+
+        <!-- Vertical sliders -->
+        <div class="glass rounded-2xl p-4 {$eqEnabled ? '' : 'opacity-40'}">
+          <div class="flex items-end justify-between gap-1">
+            {#each $eqGains as gain, i}
+              <div class="flex flex-1 flex-col items-center gap-2">
+                <span class="text-frost text-[9px] tabular-nums">{gain > 0 ? '+' : ''}{gain}</span>
+                <input
+                  type="range"
+                  min="-12"
+                  max="12"
+                  step="1"
+                  value={gain}
+                  disabled={!$eqEnabled}
+                  oninput={(e) => setBand(i, Number(e.target.value))}
+                  class="eq-vert"
+                  aria-label={`${BAND_LABELS[i]} Hz`}
+                />
+                <span class="text-mist text-[9px]">{BAND_LABELS[i]}</span>
+              </div>
+            {/each}
+          </div>
         </div>
-        {#if $activeEngine !== 'local'}
-          <p class="text-mist text-xs">
-            Note: EQ shapes Vault tracks only — YouTube audio can't pass through the Web Audio chain.
-          </p>
-        {/if}
       </div>
     {:else if panel === 'sleep'}
       <div class="flex-1 space-y-4 px-6 py-4">
@@ -199,35 +239,30 @@
           </div>
         {/if}
 
-        <!-- Auto-close toggle -->
+        <!-- Toggles: toast + tap-for-info, walang inline text -->
         <label class="glass flex items-center justify-between gap-3 rounded-2xl p-4">
           <span class="text-ice flex items-center gap-2 text-sm">
             <Icon name="power" size={16} /> Auto-close app after timer
           </span>
           <input
             type="checkbox"
-            bind:checked={$autoCloseOnSleep}
-            class="bg-glacier checked:bg-frost before:bg-ice relative h-5 w-9 shrink-0 appearance-none rounded-full transition-colors before:absolute before:top-0.5 before:left-0.5 before:h-4 before:w-4 before:rounded-full before:transition-transform checked:before:translate-x-4"
+            checked={$autoCloseOnSleep}
+            onchange={onAutoClose}
+            class="eq-switch"
           />
         </label>
-        <p class="text-mist text-xs">
-          Note: sure itong gumagana sa installed PWA. Sa regular browser tab, minsan hina-harang ng browser ang auto-close — sa ganoong kaso, pause na lang ang mangyayari.
-        </p>
 
-        <!-- Keep screen awake (para tuloy ang YouTube playback) -->
         <label class="glass flex items-center justify-between gap-3 rounded-2xl p-4">
           <span class="text-ice flex items-center gap-2 text-sm">
             <Icon name="sun" size={16} /> Keep screen awake (YouTube)
           </span>
           <input
             type="checkbox"
-            bind:checked={$keepAwake}
-            class="bg-glacier checked:bg-frost before:bg-ice relative h-5 w-9 shrink-0 appearance-none rounded-full transition-colors before:absolute before:top-0.5 before:left-0.5 before:h-4 before:w-4 before:rounded-full before:transition-transform checked:before:translate-x-4"
+            checked={$keepAwake}
+            onchange={onWake}
+            class="eq-switch"
           />
         </label>
-        <p class="text-mist text-xs">
-          Pinipigilan nitong mag-off ang screen habang may YouTube track na tumutugtog — para hindi ma-pause. May kapalit na battery usage. Ang Vault tracks ay tuloy-tuloy kahit naka-lock, hindi nila ito kailangan.
-        </p>
       </div>
     {/if}
 

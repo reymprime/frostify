@@ -7,14 +7,11 @@
 
   let { gotosearch } = $props()
 
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 </script>
 
 <div class="px-5">
   <div class="flex items-start justify-between">
     <div>
-      <p class="text-mist text-xs font-medium tracking-widest uppercase">{greeting}</p>
       <h1 class="font-display mb-5 text-2xl font-bold tracking-tight">
         Frost<span class="text-frost">ify</span>
       </h1>

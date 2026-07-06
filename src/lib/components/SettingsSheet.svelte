@@ -74,8 +74,10 @@
         <Icon name="upload" size={18} /> Import backup
       </button>
     </div>
-    <p class="text-mist mb-4 px-1 text-xs">
-      Kasama: favorites, recents, playlists, EQ settings. Ang Vault audio files ay naka-device lang — hindi kasama sa JSON backup.
+    <p class="text-mist mb-4 px-1 text-xs leading-relaxed">
+      <span class="text-ice font-semibold">Features Included:</span> Favorites, recents, playlists, and EQ settings.
+      <br /><br />
+      <span class="text-ice font-semibold">Note:</span> Vault audio files are stored locally on the device and are excluded from the JSON backup.
     </p>
     {#if status}
       <p class="text-frost mb-4 px-1 text-xs font-semibold">{status}</p>
@@ -86,19 +88,26 @@
       About Frostify
     </p>
     <div class="glass rounded-2xl p-4 text-sm">
-      <div class="mb-2 flex items-center gap-2">
+      <div class="mb-1 flex items-center gap-2">
         <span class="text-frost"><Icon name="snowflake" size={18} /></span>
         <span class="font-display font-bold">Frostify</span>
-        <span class="text-mist text-xs">v4.0 Obsidian</span>
+        <span class="text-mist text-xs">v4.0</span>
       </div>
-      <p class="text-mist text-xs leading-relaxed">
-        Music, frozen in time. A dual-engine music PWA — YouTube streaming +
-        offline Vault — with EQ, visualizer, sleep timer, and gesture controls.
-        <br /><br />
-        Built by <span class="text-ice font-semibold">Reymark Delagao (Gnokz)</span> —
-        crafted entirely on mobile with Svelte, Vite & Tailwind, deployed via
-        GitHub Actions.
+      <p class="text-frost mb-3 text-xs italic">Music, frozen in time.</p>
+      <p class="text-mist mb-3 text-xs leading-relaxed">
+        Frostify is a high-performance, dual-engine Progressive Web App (PWA)
+        that seamlessly bridges online streaming and offline playback. It
+        combines YouTube streaming with a local, secure offline Vault, complete
+        with an integrated equalizer, real-time audio visualizer, sleep timer,
+        and intuitive gesture controls.
       </p>
+      <div class="text-mist space-y-1.5 text-xs leading-relaxed">
+        <p><span class="text-ice font-semibold">Core Architecture:</span> Dual-engine playback (YouTube API + Offline Local Vault)</p>
+        <p><span class="text-ice font-semibold">Key Features:</span> Custom EQ, live audio visualizer, sleep timer, and gesture-driven UI</p>
+        <p><span class="text-ice font-semibold">Developer:</span> Reymark Delagao</p>
+        <p><span class="text-ice font-semibold">Tech Stack:</span> Built entirely on a mobile environment using Svelte, Vite, and Tailwind CSS</p>
+        <p><span class="text-ice font-semibold">Deployment:</span> Automated via GitHub Actions</p>
+      </div>
     </div>
   </div>
 {/if}

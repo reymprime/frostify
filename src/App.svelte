@@ -9,6 +9,7 @@
   import BottomNav from './lib/components/BottomNav.svelte'
   import Overlays from './lib/components/Overlays.svelte'
   import SettingsSheet from './lib/components/SettingsSheet.svelte'
+  import Toast from './lib/components/Toast.svelte'
   import { initPlayer, showVideo } from './lib/stores/player.js'
 
   let activeTab = $state('home')
@@ -24,7 +25,7 @@
 <!-- YouTube engine — hidden by default, lumalabas sa "watch mode" (eye) -->
 <div
   class={$showVideo
-     ?'glass fixed top-20 left-1/2 z-[60] aspect-video w-[92%] max-w-sm -translate-x-1/2 overflow-hidden rounded-2xl shadow-2xl'
+    ? 'glass pointer-events-none fixed top-20 left-1/2 z-[60] aspect-video w-[92%] max-w-sm -translate-x-1/2 overflow-hidden rounded-2xl shadow-2xl'
     : 'pointer-events-none fixed right-0 bottom-0 h-px w-px opacity-0'}
   aria-hidden={!$showVideo}
 >
@@ -56,3 +57,4 @@
 
 <Overlays />
 <SettingsSheet />
+<Toast />
