@@ -129,9 +129,12 @@ iframe#yt-player {
 }
 input,
 textarea,
-[contenteditable] {
-  -webkit-user-select: text;
-  user-select: text;
+[contenteditable],
+iframe,
+#yt-player {
+  -webkit-user-select: auto;
+  user-select: auto;
+  -webkit-touch-callout: default;
 }
 .no-select {
   -webkit-user-select: none;
