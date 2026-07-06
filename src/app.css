@@ -121,7 +121,18 @@ iframe#yt-player {
   display: block;
 }
 
-/* ── Iwas text-highlight habang hold/drag (reorder) ─────── */
+/* ── Iwas text-highlight sa buong app (maliban sa inputs) ─ */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input,
+textarea,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
 .no-select {
   -webkit-user-select: none;
   user-select: none;

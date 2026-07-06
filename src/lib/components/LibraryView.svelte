@@ -18,7 +18,13 @@
 
   let newName = $state('')
   let openId = $state(null)
-  let reorderList = $state(null) // 'favs' | playlist id
+  let reorderList = $state(null)
+
+  // Arrow-based reorder helpers (swap by one)
+  function favUp(i) { if (i > 0) reorderFavorites(i, i - 1) }
+  function favDown(i, len) { if (i < len - 1) reorderFavorites(i, i + 1) }
+  function plUp(id, i) { if (i > 0) reorderPlaylist(id, i, i - 1) }
+  function plDown(id, i, len) { if (i < len - 1) reorderPlaylist(id, i, i + 1) } // 'favs' | playlist id
 
   function create() {
     if (!newName.trim()) return
@@ -63,15 +69,6 @@
       Create
     </button>
   </div>
-
-  {#if reorderList}
-    <button
-      class="bg-frost text-ink mb-4 flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-sm font-bold"
-      onclick={() => (reorderList = null)}
-    >
-      <Icon name="check" size={16} /> Done reordering
-    </button>
-  {/if}
 
   {#if $playlists.length}
     <h2 class="font-display text-mist mb-3 text-sm font-semibold tracking-wide uppercase">Playlists</h2>
@@ -126,16 +123,26 @@
                   <Icon name="plus" size={14} /> Add current track ({$currentTrack.title})
                 </button>
               {/if}
+              {#if pl.tracks.length > 1}
+                <button
+                  class="glass flex w-full items-center justify-center gap-2 rounded-xl p-2.5 text-xs font-semibold {reorderList === pl.id ? 'text-frost' : 'text-mist'}"
+                  onclick={() => (reorderList = reorderList === pl.id ? null : pl.id)}
+                >
+                  <Icon name="grip" size={14} />
+                  {reorderList === pl.id ? 'Done reordering' : 'Reorder tracks'}
+                </button>
+              {/if}
               {#each pl.tracks as t, i (t.videoId || t.vaultId || i)}
                 <TrackRow
                   track={t}
                   index={i}
+                  total={pl.tracks.length}
                   onplay={() => playTrack(t, pl.tracks, i)}
                   ondelete={() => removeFromPlaylist(pl.id, t)}
                   deletelabel="Remove from playlist"
                   reorder={reorderList === pl.id}
-                  onhold={() => (reorderList = pl.id)}
-                  onreorder={(from, to) => reorderPlaylist(pl.id, from, to)}
+                  onmoveup={(idx) => plUp(pl.id, idx)}
+                  onmovedown={(idx) => plDown(pl.id, idx, pl.tracks.length)}
                 />
               {/each}
               {#if !pl.tracks.length && !$currentTrack}
@@ -148,21 +155,33 @@
     </div>
   {/if}
 
-  <h2 class="font-display text-mist mb-3 flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
-    Favorites <Icon name="heart" size={14} filled={true} />
-  </h2>
+  <div class="mb-3 flex items-center justify-between">
+    <h2 class="font-display text-mist flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
+      Favorites <Icon name="heart" size={14} filled={true} />
+    </h2>
+    {#if $favorites.length > 1}
+      <button
+        class="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold {reorderList === 'favs' ? 'text-frost' : 'text-mist'}"
+        onclick={() => (reorderList = reorderList === 'favs' ? null : 'favs')}
+      >
+        <Icon name="grip" size={13} />
+        {reorderList === 'favs' ? 'Done' : 'Reorder'}
+      </button>
+    {/if}
+  </div>
   {#if $favorites.length}
     <div class="space-y-2 pb-4">
       {#each $favorites as t, i (t.videoId || t.vaultId || i)}
         <TrackRow
           track={t}
           index={i}
+          total={$favorites.length}
           onplay={() => playTrack(t, $favorites, i)}
           ondelete={() => toggleFav(t)}
           deletelabel="Remove from favorites"
           reorder={reorderList === 'favs'}
-          onhold={() => (reorderList = 'favs')}
-          onreorder={(from, to) => reorderFavorites(from, to)}
+          onmoveup={(idx) => favUp(idx)}
+          onmovedown={(idx) => favDown(idx, $favorites.length)}
         />
       {/each}
     </div>

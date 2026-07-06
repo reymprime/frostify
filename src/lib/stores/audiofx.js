@@ -48,7 +48,7 @@ export function attachFx(audioEl) {
     return
   }
   try {
-    ctx = new(window.AudioContext || window.webkitAudioContext)()
+    ctx = new (window.AudioContext || window.webkitAudioContext)()
     const source = ctx.createMediaElementSource(audioEl)
     const gains = get(eqGains)
     const on = get(eqEnabled)
@@ -97,8 +97,7 @@ export function setBand(i, db) {
 }
 
 export function applyPreset(name) {
-  ;
-  (presets[name] || presets.Flat).forEach((db, i) => setBand(i, db))
+  ;(presets[name] || presets.Flat).forEach((db, i) => setBand(i, db))
 }
 
 export function toggleEq() {
