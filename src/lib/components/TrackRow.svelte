@@ -15,6 +15,7 @@
     total = 0,
     ondelete = null,
     deletelabel = 'Delete',
+    onswiperight = null,
     reorder = false,
     onmoveup = null,
     onmovedown = null,
@@ -62,8 +63,13 @@
       if (dx <= -SWIPE_PX) {
         toggleFav(track)
         navigator.vibrate?.(20)
-      } else if (dx >= SWIPE_PX && ondelete) {
-        requestRemove()
+      } else if (dx >= SWIPE_PX) {
+        if (onswiperight) {
+          onswiperight()
+          navigator.vibrate?.(20)
+        } else if (ondelete) {
+          requestRemove()
+        }
       }
     }
     dx = 0
@@ -84,8 +90,8 @@
       <Icon name="heart" size={20} filled={true} />
     </div>
   {:else if dx > 10}
-    <div class="absolute inset-y-0 left-3 flex items-center text-red-400" style="opacity: {Math.min(1, dx / 70)}">
-      <Icon name="trash" size={20} />
+    <div class="absolute inset-y-0 left-3 flex items-center {onswiperight ? 'text-frost' : 'text-red-400'}" style="opacity: {Math.min(1, dx / 70)}">
+      <Icon name={onswiperight ? 'plus' : 'trash'} size={20} />
     </div>
   {/if}
 

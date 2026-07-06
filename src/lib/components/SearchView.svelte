@@ -4,7 +4,7 @@
   import { searchYouTube, searchResults, searching, searchError } from '../stores/search.js'
   import { playTrack } from '../stores/player.js'
   import { createPlaylist, addToPlaylist } from '../stores/library.js'
-  import { askPrompt } from '../stores/ui.js'
+  import { askPrompt, playlistPicker } from '../stores/ui.js'
 
   let query = $state('')
 
@@ -64,7 +64,7 @@
 
   <div class="space-y-2 pb-4">
     {#each $searchResults as t, i (t.videoId)}
-      <TrackRow track={t} onplay={() => playTrack(t, $searchResults, i)} />
+      <TrackRow track={t} onplay={() => playTrack(t, $searchResults, i)} onswiperight={() => playlistPicker.set(t)} />
     {/each}
   </div>
 </div>
